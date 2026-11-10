@@ -6,6 +6,7 @@
   "wallpaper_captions": true,
   "wallpaper_dim": 14,
   "greeting_name": "Chris",
+  "game_day": "io.github.sumyabazar1.weather",
   "show_stats": true,
   "app_library": true,
   "columns": 8,
