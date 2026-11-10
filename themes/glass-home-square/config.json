@@ -9,6 +9,7 @@
   "greeting_name": "Chris",
   "game_day": "io.github.sumyabazar1.weather",
   "show_stats": false,
+  "app_keys": ["KEYCODE_TV_INPUT:inputs"],
   "app_library": true,
   "columns": 8,
   "single_row": true,
