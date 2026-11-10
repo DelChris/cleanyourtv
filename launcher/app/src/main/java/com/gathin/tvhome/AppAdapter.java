@@ -19,6 +19,7 @@ import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.provider.Settings;
 import android.util.DisplayMetrics;
+import android.os.Build;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -115,6 +116,14 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     static int tileHeightPx(int tileWidthPx) {
         return Math.round(tileWidthPx * DESIGN_H_DP / DESIGN_W_DP);
+    }
+
+    /** square_tiles: a square a quarter smaller than the column's tile width, so the apps sit apart like icons. */
+    static final float SQUARE_SCALE = 0.75f;
+
+    /** square_tiles: the square's side; otherwise the 16:9 height. */
+    static int tileHeightPx(int tileWidthPx, boolean square) {
+        return square ? Math.round(tileWidthPx * SQUARE_SCALE) : tileHeightPx(tileWidthPx);
     }
 
     /** Height of one grid item: the tile, the name label under it and the item's own padding. */
@@ -218,6 +227,8 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     private final Map<String, String> appLabels, appBanners;
     /** Every app tile is its icon on a card tinted from that icon, never its banner (config.xml, uniform_tiles). */
     private final boolean uniformTiles;
+    /** Square tiles with a larger icon (config.xml, square_tiles). */
+    private final boolean squareTiles;
     /** Packages drawn from their icon and name even when they have a banner (config.xml icon_tiles). */
     private final Set<String> iconTiles;
     private final List<Entry> items = new ArrayList<>();
@@ -248,6 +259,8 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         this.appLabels = cfg.appLabels;
         this.appBanners = cfg.appBanners;
         this.uniformTiles = cfg.uniformTiles;
+        this.squareTiles = cfg.squareTiles;
+        squareCorners = cfg.squareTiles;
         // Tiles keep their identity across reload(), so a focused tile stays on its app instead of
         // its view being rebound to whatever app now sits in that slot.
         setHasStableIds(true);
@@ -395,10 +408,60 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         notifyDataSetChanged();
     }
 
+    /**
+     * square_tiles in a single row: the App library as one more square at the end of the row, a nine-square mark on
+     * glass, instead of the full-width pill row (which broke the row and took Left away). It keeps btnLibrary's id so
+     * MainActivity's focusLibrary finds it. Left goes back along the row and Up to the top bar, as from any tile.
+     */
+    private RecyclerView.ViewHolder libraryTile(View v, View card, TextView name, int side, float density) {
+        card.setId(R.id.btnLibrary);
+        float radius = cornerRadius(side, density);
+        GradientDrawable glassFill = new GradientDrawable();
+        glassFill.setColor(0x33FFFFFF);
+        glassFill.setCornerRadius(radius);
+        card.setBackground(glassFill);
+        GradientDrawable rim = new GradientDrawable();
+        rim.setColor(0x00000000);
+        rim.setCornerRadius(radius);
+        rim.setStroke(Math.max(2, Math.round(2 * density)), 0xE6FFFFFF);
+        ImageView icon = v.findViewById(R.id.icon);
+        FrameLayout.LayoutParams iconLp = (FrameLayout.LayoutParams) icon.getLayoutParams();
+        iconLp.width = iconLp.height = Math.round(side * 0.46f);
+        iconLp.bottomMargin = 0;
+        icon.setLayoutParams(iconLp);
+        icon.setImageResource(R.drawable.ic_apps_grid);
+        icon.setVisibility(View.VISIBLE);
+        v.findViewById(R.id.banner).setVisibility(View.GONE);
+        v.findViewById(R.id.label).setVisibility(View.GONE);
+        // Named above the row by MainActivity's shelf, like the apps; no label under the square.
+        name.setVisibility(View.GONE);
+        card.setContentDescription(ctx.getString(R.string.app_library));
+        card.setOnClickListener(x -> listener.onLibraryRequested());
+        card.setOnFocusChangeListener((x, focused) -> {
+            if (focused) listener.onLibraryFocused();
+            float s = focused ? FOCUS_SCALE : 1f;
+            if (animations && !reducedMotion) {
+                x.animate().scaleX(s).scaleY(s).setDuration(150).start();
+            } else {
+                x.setScaleX(s);
+                x.setScaleY(s);
+            }
+            if (Build.VERSION.SDK_INT >= 23) x.setForeground(focused ? rim : null);
+        });
+        card.setOnKeyListener((x, key, event) -> {
+            if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
+            boolean forward = key == (x.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL
+                    ? KeyEvent.KEYCODE_DPAD_LEFT : KeyEvent.KEYCODE_DPAD_RIGHT);
+            // The row ends here, and there is nothing below it; Left and Up take the default focus search.
+            return forward || key == KeyEvent.KEYCODE_DPAD_DOWN;
+        });
+        return new RecyclerView.ViewHolder(v) { };
+    }
+
     @NonNull
     @Override
     public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        if (viewType == 1) {
+        if (viewType == 1 && !(squareTiles && singleRow)) {
             View row = LayoutInflater.from(ctx).inflate(R.layout.row_app_library, parent, false);
             View button = row.findViewById(R.id.btnLibrary);
             button.setOnClickListener(v -> listener.onLibraryRequested());
@@ -415,10 +478,10 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         float density = parent.getResources().getDisplayMetrics().density;
         int width = parent.getWidth() > 0 ? parent.getWidth() : parent.getMeasuredWidth();
         int inner = width - parent.getPaddingLeft() - parent.getPaddingRight();
-        int w = tileWidthPx(inner, parent.getHeight(), dockSize, rowsBelowDock, dockTitle, dockRow, density), h = tileHeightPx(w);
+        int w = tileWidthPx(inner, parent.getHeight(), dockSize, rowsBelowDock, dockTitle, dockRow, density), h = tileHeightPx(w, squareTiles);
         View card = v.findViewById(R.id.card);
         ViewGroup.LayoutParams cardLp = card.getLayoutParams();
-        cardLp.width = w;
+        cardLp.width = squareTiles ? h : w;
         cardLp.height = h;
         card.setLayoutParams(cardLp);
         View name = v.findViewById(R.id.name);
@@ -433,12 +496,13 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         }
         name.setLayoutParams(nameLp);
         // A sideways row would stretch a match_parent item across the whole screen: give it a grid column's width.
-        if (singleRow) v.getLayoutParams().width = inner / dockSize;
+        // square_tiles: the squares sit close together, a quarter of their side apart, as icons on tvOS do.
+        if (singleRow) v.getLayoutParams().width = squareTiles ? Math.round(h * (1 + SQUARE_GAP_SHARE)) : inner / dockSize;
         if (uniformTiles) {
             // tvOS-style tile: a large centred mark, no caption inside the card.
             View icon = v.findViewById(R.id.icon);
             FrameLayout.LayoutParams iconLp = (FrameLayout.LayoutParams) icon.getLayoutParams();
-            iconLp.width = iconLp.height = Math.round(h * ICON_SHARE);
+            iconLp.width = iconLp.height = Math.round(h * (squareTiles ? SQUARE_ICON_SHARE : ICON_SHARE));
             iconLp.bottomMargin = 0;
             icon.setLayoutParams(iconLp);
         } else if (h < Math.round(DESIGN_H_DP * density)) {
@@ -452,6 +516,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             View label = v.findViewById(R.id.label);
             label.setPadding(label.getPaddingLeft(), label.getPaddingTop(), label.getPaddingRight(), Math.round(4f * density));
         }
+        if (viewType == 1) return libraryTile(v, card, (TextView) name, h, density);
         return new Holder(v, listener, animations, advancedEffects, reducedMotion, restNameAlpha, focusOvershoot);
     }
 
@@ -662,6 +727,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     }
 
     String labelAt(int position) {
+        if (isLibraryAt(position)) return ctx.getString(R.string.app_library);
         return position >= 0 && position < items.size() ? items.get(position).label : "";
     }
 
@@ -692,6 +758,17 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     /** Share of the tile height the icon takes in uniform_tiles mode (onCreateViewHolder). */
     private static final float ICON_SHARE = 0.62f;
+    /** The same for square_tiles: the app's own icon is the tile, edge to edge, clipped by the card's corners. */
+    private static final float SQUARE_ICON_SHARE = 1f;
+    /** square_tiles in a single row: the gap between two squares, as a share of the square's side. */
+    static final float SQUARE_GAP_SHARE = 0.23f;
+    /** square_tiles: corner radius as a share of the square's side. */
+    static final float SQUARE_RADIUS_SHARE = 0.20f;
+    /**
+     * Set from the config when the adapter is made, so the tile outline, the dock band and the focus glass, which
+     * all ask cornerRadius with a width alone, round square tiles alike.
+     */
+    static volatile boolean squareCorners;
 
     /**
      * The colour covering most of an icon, for a card that should read as that app: a small saturated badge
@@ -897,6 +974,8 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     /** Corner radius for a tile of this width: 16dp at the design width, proportionally less when smaller. */
     static float cornerRadius(int tileWidthPx, float density) {
+        // square_tiles: rounder, as app icons are (17% of the side, about 21px on a 124px square).
+        if (squareCorners) return tileWidthPx * SQUARE_RADIUS_SHARE;
         return 16f * density * Math.min(1f, tileWidthPx / (DESIGN_W_DP * density));
     }
 

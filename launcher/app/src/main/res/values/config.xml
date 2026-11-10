@@ -424,6 +424,9 @@
     <!-- Every app tile is its icon on a card tinted from that icon, name only under the focused tile,
          instead of each app's own banner. Off by default; a theme can set "uniform_tiles": true. -->
     <bool name="uniform_tiles">false</bool>
+    <!-- Square app tiles with a large icon, as on tvOS, instead of 16:9 cards; turns uniform_tiles on. Off by
+         default; a theme can set "square_tiles": true. -->
+    <bool name="square_tiles">false</bool>
     <!-- Optional direct Home picker in the app library: OK toggles the checkmark, checked apps first.
          Off by default; a theme can set "app_library_selection": true (also needs app_library). -->
     <bool name="app_library_selection">false</bool>

@@ -543,6 +543,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // dock_title false: the name above the dock (and the cinematic lines under it) never shows; the glow
         // still follows the dock.
         if (!cfg.dockTitle) hero.setVisibility(View.GONE);
+        // square_tiles: a small name over the row's start, as an icon dock labels its apps, not the 48sp shelf title.
+        if (cfg.squareTiles && !cinematic) {
+            heroName.setTextSize(TypedValue.COMPLEX_UNIT_SP, 22f);
+            heroName.setLetterSpacing(0f);
+            try {
+                heroName.setTypeface(getResources().getFont(R.font.outfit_medium));
+            } catch (RuntimeException missing) {
+                // Keep the shelf's own font.
+            }
+        }
         greeting = findViewById(R.id.greeting);
         clockBlock = findViewById(R.id.leftBlock);
         clockRefresh = new ClockRefresh(clockBlock);
@@ -711,7 +721,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             // Item height follows the tile size, which follows the columns and the rows that must fit (AppAdapter.tileWidthPx).
             int inner = (r - l) - grid.getPaddingLeft() - grid.getPaddingRight();
             int tileW = AppAdapter.tileWidthPx(inner, h, COLUMNS, rowsBelowDock, cfg.dockTitle, cfg.dockRow, density);
-            int itemH = AppAdapter.itemHeightPx(AppAdapter.tileHeightPx(tileW), density);
+            int itemH = AppAdapter.itemHeightPx(AppAdapter.tileHeightPx(tileW, cfg.squareTiles), density);
             int dockRow = itemH + (int) (AppAdapter.DOCK_EXTRA_DP * density);   // item height plus DockDecoration offsets
             int gridRows = itemH * rowsBelowDock;
             // Keep the hero below the header when the library is enabled on a short screen,
@@ -1918,7 +1928,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private void showHero(int position, float dockTopInRoot) {
         String label = adapter.labelAt(position);
         int color = adapter.ambientColorAt(position);
-        float y = dockTopInRoot - 14 * density - 26 * density - hero.getHeight();
+        // square_tiles: the small name sits closer over the band (about 40px on a 1080p TV) than the 40dp shelf does.
+        float y = dockTopInRoot - (AppAdapter.squareCorners ? 28 : 14 + 26) * density - hero.getHeight();
+        if (AppAdapter.squareCorners) alignHeroWithRow();
         boolean changed = !label.contentEquals(heroName.getText());
         if (cinematic && heroArtAlpha > 0f) showHeroArt(position);
 
@@ -1981,6 +1993,20 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 ambient.animate().alpha(1f).setDuration(600).start();
             }
         }
+    }
+
+    /** square_tiles: the name starts where the row's first square does, not at the shelf's fixed 68dp. */
+    private void alignHeroWithRow() {
+        RecyclerView.ViewHolder first = grid.findViewHolderForAdapterPosition(0);
+        if (first == null) return;
+        View card = first.itemView.findViewById(R.id.card);
+        if (card == null || card.getWidth() == 0) return;
+        Rect r = new Rect(0, 0, card.getWidth(), card.getHeight());
+        root.offsetDescendantRectToMyCoords(card, r);
+        ViewGroup.MarginLayoutParams lp = (ViewGroup.MarginLayoutParams) hero.getLayoutParams();
+        if (lp.getMarginStart() == r.left) return;
+        lp.setMarginStart(r.left);
+        hero.setLayoutParams(lp);
     }
 
     /** The shelf's text for this dock app: its name and, on the cinematic shelf, "Last opened" and the dots. */
@@ -2483,6 +2509,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override public void onLibraryFocused() {
         libraryFocusPending = false;
         hideGlass();
+        // square_tiles: the library is a square in the row, so it names itself above the row like the apps do.
+        RecyclerView.ViewHolder lib = AppAdapter.squareCorners ? grid.findViewHolderForAdapterPosition(adapter.appCount()) : null;
+        View libCard = lib == null ? null : lib.itemView.findViewById(R.id.btnLibrary);
+        if (libCard != null && hero.getVisibility() == View.VISIBLE) {
+            Rect r = new Rect(0, 0, libCard.getWidth(), libCard.getHeight());
+            root.offsetDescendantRectToMyCoords(libCard, r);
+            showHero(adapter.appCount(), r.top);
+            return;
+        }
         hideHero();
     }
 
