@@ -608,6 +608,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (lunar) lunarDate.setVisibility(View.VISIBLE);
         greetingName = cfg.greetingName;
         if (cfg.dateBelowClock) moveDateBelowClock();
+        if (cfg.wallpaperEnabled) shadeHeaderTexts();
         if (cfg.dateBelowClock && cfg.iconOnlyButtons && !cfg.topMenu
                 && !getResources().getBoolean(R.bool.rtl_menu_bar)) {
             alignDateBelowIconsWithClock();
@@ -2552,6 +2553,19 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             // Keep each line where its own gravity put it (right in Hebrew) now that it no longer fills the column.
             textLp.gravity = ((TextView) text).getGravity() & Gravity.HORIZONTAL_GRAVITY_MASK;
             text.setLayoutParams(textLp);
+        }
+    }
+
+    /**
+     * Over a wallpaper, a soft shadow under the header's texts keeps them readable on a bright or busy photo, so the
+     * secondary lines (date, city) can stay muted instead of solid white. One shadow layer per text: no cost per frame.
+     */
+    private void shadeHeaderTexts() {
+        int[] ids = {R.id.greeting, R.id.clock, R.id.ampm, R.id.shamsiDate, R.id.date, R.id.lunarDate, R.id.stats,
+                R.id.weatherTemp, R.id.weatherSky};
+        for (int id : ids) {
+            View v = findViewById(id);
+            if (v instanceof TextView) ((TextView) v).setShadowLayer(6 * density, 0, density, 0x8C000000);
         }
     }
 

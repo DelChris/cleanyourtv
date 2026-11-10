@@ -268,7 +268,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginStart="12dp"
                             android:singleLine="true"
-                            android:textColor="#E6FFFFFF"
+                            android:textColor="#A6FFFFFF"
                             android:textSize="12sp"
                             android:fontFamily="@string/font_medium"
                             android:letterSpacing="0.14"
