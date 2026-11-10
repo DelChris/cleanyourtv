@@ -119,7 +119,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     }
 
     /** square_tiles: a square a quarter smaller than the column's tile width, so the apps sit apart like icons. */
-    static final float SQUARE_SCALE = 0.75f;
+    static final float SQUARE_SCALE = 0.66f;
 
     /** square_tiles: the square's side; otherwise the 16:9 height. */
     static int tileHeightPx(int tileWidthPx, boolean square) {
