@@ -3706,6 +3706,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         popup.setWidth(Math.max(width, Math.min(panel.getMeasuredWidth(), (int) (360 * density))));
 
         int alignment = getResources().getBoolean(R.bool.rtl_menu_bar) != underGear ? Gravity.END : Gravity.START;
+        // A pill on the screen's right half (icon-only buttons sit at the right end) opens leftward, its right edge
+        // under the pill's, so the list keeps clear of the screen's edge.
+        int[] at = new int[2];
+        anchor.getLocationInWindow(at);
+        if (at[0] + anchor.getWidth() / 2 > root.getWidth() / 2) alignment = Gravity.END;
         dropIn(popup, panel, anchor, alignment);
         for (int i = 0; i < rows.getChildCount(); i++) {
             View child = rows.getChildAt(i);
