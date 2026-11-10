@@ -212,6 +212,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean showStats;
     /** config.xml inputs_connected_only: the Inputs menu lists only connected inputs, the rest behind "More inputs". */
     private boolean inputsConnectedOnly;
+    private boolean inputsFoldAnalog;
     /** config.xml inputs_cec_state_only: only CEC device rows show a connection state, bare HDMI ports none. */
     private boolean inputsCecStateOnly;
     private boolean shamsi;
@@ -600,6 +601,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         rotationStart = SystemClock.elapsedRealtime();
         showStats = cfg.showStats;
         inputsConnectedOnly = cfg.inputsConnectedOnly;
+        inputsFoldAnalog = cfg.inputsFoldAnalog;
         inputsCecStateOnly = cfg.inputsCecStateOnly;
         shamsi = cfg.shamsiDate;
         lunarDate = findViewById(R.id.lunarDate);
@@ -3603,7 +3605,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 boolean named = custom != null && custom.length() > 0 && !custom.toString().equals(label);
                 if (!hdmi && rows.getChildCount() > 0 && !sawNonHdmi) {
                     View line = addSeparator(rows);
-                    if (connectedOnly) fold(line, folded);
+                    if (connectedOnly || inputsFoldAnalog) fold(line, folded);
                 }
                 if (!hdmi) sawNonHdmi = true;
                 List<TvInputInfo> devices = cecDevices.get(info.getId());
@@ -3630,7 +3632,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 int state = !hdmi || hdmiStateBogus ? -1 : tim.getInputState(id);
                 View row = addInputRow(rows, popup, hdmi ? R.drawable.ic_input : R.drawable.ic_av, label, state,
                         () -> openInput(id));
-                if (connectedOnly && InputFold.folds(hdmi, state)) fold(row, folded);
+                if ((connectedOnly && InputFold.folds(hdmi, state)) || (inputsFoldAnalog && !hdmi)) fold(row, folded);
             }
         }
         if (!folded.isEmpty()) {

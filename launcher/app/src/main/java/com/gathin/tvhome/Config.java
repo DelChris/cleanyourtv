@@ -216,6 +216,11 @@ final class Config {
      * 0 keeps wallpaper_dim all day. Set after construction, like a theme key read late.
      */
     int wallpaperNightDim;
+    /**
+     * inputs_fold_analog: only the analog jacks (Composite, AV) fold behind "More inputs"; every HDMI port stays,
+     * connected or not, unlike inputs_connected_only, which also folds a console asleep in standby.
+     */
+    boolean inputsFoldAnalog;
     /** The dock band's opacity in percent (config.json dock_opacity, 30-100): below 100 the wallpaper shows through. */
     final int dockOpacity;
     /**
@@ -739,6 +744,7 @@ final class Config {
                 Math.max(0, Math.min(600, openOnStartNetworkWait)), openOnStartOnWake, iconOnlyVpn, clockFormat, backOpensClock, glowSnap,
                 settingsKeyClearTask);
         built.wallpaperNightDim = json == null ? 0 : integer(json, "wallpaper_night_dim", 0, 0, 90);
+        built.inputsFoldAnalog = json != null && bool(json, "inputs_fold_analog", false);
         return built;
     }
 
