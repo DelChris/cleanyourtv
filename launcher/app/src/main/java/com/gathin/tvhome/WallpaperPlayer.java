@@ -46,6 +46,10 @@ final class WallpaperPlayer {
     private final int height;
     /** wallpaper_dim as an ARGB black, painted into each picture once instead of a full-screen shade view. */
     private final int dimColor;
+    /** wallpaper_night_dim as an ARGB black for pictures decoded at night; 0 keeps dimColor. */
+    private final int nightDimColor;
+    /** How long a caption stays before it fades out, so the picture's credit does not sit on screen all day. */
+    private static final long CAPTION_MS = 8_000;
     /** The picture on screen, released once the next one has been drawn. */
     private Bitmap current;
     private boolean active;
@@ -70,11 +74,14 @@ final class WallpaperPlayer {
         bitmapConfig = config.wallpaperTrueColor ? Bitmap.Config.ARGB_8888 : Bitmap.Config.RGB_565;
         // The dim is painted into the picture (decode), so no full-screen shade layer is drawn on every frame.
         dimColor = config.wallpaperDim > 0 ? (config.wallpaperDim * 255 / 100) << 24 : 0;
+        int night = Math.max(config.wallpaperDim, config.wallpaperNightDim);
+        nightDimColor = config.wallpaperNightDim > 0 ? (night * 255 / 100) << 24 : 0;
         order = config.wallpaperOrder;
         preferences = context.getSharedPreferences("wallpaper_rotation", Context.MODE_PRIVATE);
         moods = config.wallpaperMoods;
-        latitude = moods.isEmpty() ? "" : context.getString(R.string.latitude);
-        longitude = moods.isEmpty() ? "" : context.getString(R.string.longitude);
+        boolean needsSun = !moods.isEmpty() || nightDimColor != 0;
+        latitude = needsSun ? context.getString(R.string.latitude) : "";
+        longitude = needsSun ? context.getString(R.string.longitude) : "";
         // Playback state belongs to one collection. Changing the collection starts from its first
         // picture instead of resuming a filename that belonged to the previous one.
         String collection = collectionKey(files);
@@ -151,12 +158,23 @@ final class WallpaperPlayer {
     /** The pictures the rotation picks from now: wallpaper_moods' group for the time of day, or the whole collection. */
     private List<File> playable() {
         if (moods.isEmpty()) return files;
+        return WallpaperMood.select(files, moods, moodNow());
+    }
+
+    /** Morning, evening or night now, by today's sun at config.xml's latitude and longitude. */
+    private synchronized String moodNow() {
         LocalDateTime now = LocalDateTime.now();
         if (!now.toLocalDate().equals(sunDay)) {
             sunDay = now.toLocalDate();
             sun = WallpaperMood.sun(sunDay, latitude, longitude, ZoneId.systemDefault());
         }
-        return WallpaperMood.select(files, moods, WallpaperMood.timeOfDay(now.getHour() * 60 + now.getMinute(), sun[0], sun[1]));
+        return WallpaperMood.timeOfDay(now.getHour() * 60 + now.getMinute(), sun[0], sun[1]);
+    }
+
+    /** The dim painted into a picture decoded now: the night's when wallpaper_night_dim is set and it is night. */
+    private int dimNow() {
+        if (nightDimColor != 0 && WallpaperMood.NIGHT.equals(moodNow())) return nightDimColor;
+        return dimColor;
     }
 
     void close() {
@@ -210,8 +228,8 @@ final class WallpaperPlayer {
     private static TextView makeCaption(Context context, FrameLayout root) {
         float dp = context.getResources().getDisplayMetrics().density;
         TextView text = new TextView(context);
-        text.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
-        text.setTextColor(0xD9FFFFFF);
+        text.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        text.setTextColor(0xA6FFFFFF);
         text.setShadowLayer(6 * dp, 0, dp, 0xCC000000);
         text.setSingleLine(true);
         text.setEllipsize(TextUtils.TruncateAt.END);
@@ -236,6 +254,7 @@ final class WallpaperPlayer {
         if (caption == null) return;
         String name = names.get(displayed);
         caption.animate().cancel();
+        caption.removeCallbacks(hideCaption);
         if (name == null) {
             caption.setAlpha(0f);
             return;
@@ -244,12 +263,28 @@ final class WallpaperPlayer {
         if (!fade || caption.getAlpha() == 0f) {
             caption.setText(name);
             caption.setAlpha(1f);
+            fadeCaptionLater();
             return;
         }
         caption.animate().alpha(0f).setDuration(250).withEndAction(() -> {
             caption.setText(name);
-            caption.animate().alpha(1f).setDuration(350).start();
+            caption.animate().alpha(1f).setDuration(350).withEndAction(this::fadeCaptionLater).start();
         }).start();
+    }
+
+    /**
+     * The credit shows when a picture comes, then fades away after CAPTION_MS. A timer, not an animator start delay:
+     * with the animator duration scale at 0 (a common TV setting) Android skips start delays too.
+     */
+    private final Runnable hideCaption = this::hideCaptionNow;
+
+    private void hideCaptionNow() {
+        if (caption != null) caption.animate().alpha(0f).setDuration(600).start();
+    }
+
+    private void fadeCaptionLater() {
+        caption.removeCallbacks(hideCaption);
+        caption.postDelayed(hideCaption, CAPTION_MS);
     }
 
     /** Names plus sizes: enough to notice a different collection without hashing every image. */
@@ -287,10 +322,11 @@ final class WallpaperPlayer {
                 options.inTargetDensity = scale[1];
             }
             options.inPreferredConfig = bitmapConfig;
-            options.inMutable = dimColor != 0;
+            int dim = dimNow();
+            options.inMutable = dim != 0;
             Bitmap decoded = BitmapFactory.decodeFile(file.getPath(), options);
             if (decoded == null) return null;
-            if (dimColor != 0) new Canvas(decoded).drawColor(dimColor);
+            if (dim != 0) new Canvas(decoded).drawColor(dim);
             // One copy in GPU memory instead of a software bitmap plus its texture; the decode stays off the UI
             // thread for rotations, and Home's return no longer uploads 4-8 MB to the GPU.
             Bitmap gpu = decoded.copy(Bitmap.Config.HARDWARE, false);
