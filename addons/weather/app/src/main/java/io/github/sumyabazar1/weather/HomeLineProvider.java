@@ -23,7 +23,7 @@ public final class HomeLineProvider extends ContentProvider {
     static final String AUTHORITY = "io.github.sumyabazar1.weather.home";
     static final Uri TURNS = Uri.parse("content://" + AUTHORITY + "/turns");
     private static final String[] COLUMNS =
-            {"top_line", "word", "start_ms", "end_ms", "colour", "calendar", "turn_seconds", "headline"};
+            {"top_line", "word", "start_ms", "end_ms", "colour", "calendar", "turn_seconds", "headline", "icon", "temp", "sky"};
     private static final String CACHE = "home_line";
     /** A reading older than this is not shown at all, rather than shown wrong. */
     private static final long STALE_MS = 3 * 60 * 60_000L;
@@ -69,8 +69,21 @@ public final class HomeLineProvider extends ContentProvider {
         String headline = String.format(Locale.ROOT, "%d°   ↑%d°  ↓%d°",
                 Forecast.degrees(temp, false), Forecast.degrees(max, false), Forecast.degrees(min, false));
         // start in the past and end when the reading goes stale: one steady turn that never counts down.
-        c.addRow(new Object[] {top, "", at, at + STALE_MS, COLOUR, "weather", 30, headline});
+        // icon/temp/sky: the short form a launcher may show beside its clock instead of the panel.
+        c.addRow(new Object[] {top, "", at, at + STALE_MS, COLOUR, "weather", 30, headline,
+                icon(code, day), Forecast.degrees(temp, false) + "°", sky});
         return c;
+    }
+
+    /** A sky key for a WMO code: sun, moon, partly_day, partly_night, cloud, fog, rain, snow or storm. */
+    static String icon(int code, boolean day) {
+        if (code <= 1) return day ? "sun" : "moon";
+        if (code == 2) return day ? "partly_day" : "partly_night";
+        if (code == 45 || code == 48) return "fog";
+        if (code >= 95) return "storm";
+        if ((code >= 71 && code <= 77) || code == 85 || code == 86) return "snow";
+        if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) return "rain";
+        return "cloud";
     }
 
     private void fetch(Context ctx, double lat, double lon, String key) {

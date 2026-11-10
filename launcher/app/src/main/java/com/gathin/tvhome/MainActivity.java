@@ -2850,6 +2850,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 break;
             }
         }
+        // A reading with a short form (the weather) sits small beside the clock and leaves the panel to the games.
+        GameDay.Turn beside = null;
+        List<GameDay.Turn> panelGames = new java.util.ArrayList<>();
+        for (GameDay.Turn g : games) {
+            if (beside == null && g.besideClock() && g.endMs > now) beside = g;
+            else if (!g.besideClock()) panelGames.add(g);
+        }
+        showWeatherBeside(beside);
+        games = panelGames;
         RaceWeekend.State f1 = raceCalendar.isEmpty() ? null : RaceWeekend.at(raceCalendar, java.time.Instant.ofEpochMilli(now));
         List<GameDay.Turn> turns = GameDay.merge(games, f1, now);
         if (turns.isEmpty()) {
@@ -2886,6 +2895,35 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         showPager(turns.size(), on);
         if (turns.size() > 1 && !stopped) handler.postDelayed(turnTick, GameDay.delayToNextTurn(since, seconds));
+    }
+
+    /** The weather beside the clock: a small outline icon, "16°" and the sky's words; gone without a reading. */
+    private void showWeatherBeside(GameDay.Turn t) {
+        View group = findViewById(R.id.weatherBeside);
+        if (t == null) {
+            group.setVisibility(View.GONE);
+            return;
+        }
+        ((ImageView) findViewById(R.id.weatherIcon)).setImageResource(weatherIcon(t.icon));
+        ((TextView) findViewById(R.id.weatherTemp)).setText(t.temp);
+        TextView sky = findViewById(R.id.weatherSky);
+        sky.setText(t.sky);
+        sky.setVisibility(t.sky.isEmpty() ? View.GONE : View.VISIBLE);
+        group.setVisibility(View.VISIBLE);
+    }
+
+    private static int weatherIcon(String key) {
+        switch (key) {
+            case "sun": return R.drawable.weather_sun;
+            case "moon": return R.drawable.weather_moon;
+            case "partly_day": return R.drawable.weather_partly_day;
+            case "partly_night": return R.drawable.weather_partly_night;
+            case "fog": return R.drawable.weather_fog;
+            case "rain": return R.drawable.weather_rain;
+            case "snow": return R.drawable.weather_snow;
+            case "storm": return R.drawable.weather_storm;
+            default: return R.drawable.weather_cloud;
+        }
     }
 
     /** One dot per turn, the one on screen bright; none for a single turn. */

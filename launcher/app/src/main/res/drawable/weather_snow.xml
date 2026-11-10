@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Weather beside the clock: "snow" (see MainActivity.weatherIcon). Outline, white, tinted by alpha. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
+    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="1.8" android:strokeLineCap="round"
+        android:strokeLineJoin="round" android:pathData="M7.5,15H17A4,4 0 0 0 17.6,7.05A6,6 0 0 0 6.2,6.2A4.5,4.5 0 0 0 7.5,15Z" />
+    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="2.4" android:strokeLineCap="round"
+        android:strokeLineJoin="round" android:pathData="M9,18.5h0.01M13,20.5h0.01M17,18.5h0.01" />
+</vector>

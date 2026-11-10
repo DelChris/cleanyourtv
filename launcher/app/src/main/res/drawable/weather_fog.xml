@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Weather beside the clock: "fog" (see MainActivity.weatherIcon). Outline, white, tinted by alpha. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
+    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="1.8" android:strokeLineCap="round"
+        android:strokeLineJoin="round" android:pathData="M4,8H20M6,12H18M4,16H20" />
+</vector>

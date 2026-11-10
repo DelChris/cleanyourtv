@@ -33,8 +33,12 @@ final class GameDay {
     private static final String[] PROJECTION = withHeadline();
 
     private static String[] withHeadline() {
-        String[] p = java.util.Arrays.copyOf(COLUMNS, COLUMNS.length + 1);
+        String[] p = java.util.Arrays.copyOf(COLUMNS, COLUMNS.length + 4);
         p[COLUMNS.length] = HEADLINE;
+        // Optional short form of a reading for beside the clock (the weather): a sky key, "16°" and "Cloudy".
+        p[COLUMNS.length + 1] = "icon";
+        p[COLUMNS.length + 2] = "temp";
+        p[COLUMNS.length + 3] = "sky";
         return p;
     }
 
@@ -127,7 +131,8 @@ final class GameDay {
                     while (c != null && c.moveToNext()) {
                         rows.add(new Object[] {str(c, at[0]), str(c, at[1]), num(c, at[2]), num(c, at[3]),
                                 at[4] < 0 ? null : (Object) c.getInt(at[4]), str(c, at[5]),
-                                at[6] < 0 ? null : (Object) c.getInt(at[6]), str(c, at[7])});
+                                at[6] < 0 ? null : (Object) c.getInt(at[6]), str(c, at[7]),
+                                str(c, at[8]), str(c, at[9]), str(c, at[10])});
                     }
                 } catch (RuntimeException gone) {
                     // Uninstalled or crashed mid-query: keep what is on screen.
@@ -165,7 +170,11 @@ final class GameDay {
             String word = r[1] instanceof String ? (String) r[1] : "";
             int colour = r[4] instanceof Number ? ((Number) r[4]).intValue() : 0xFFFFFFFF;
             String headline = r.length > 7 && r[7] instanceof String ? (String) r[7] : "";
-            out.add(new Turn((String) r[0], word, start, end, colour, headline));
+            Turn turn = new Turn((String) r[0], word, start, end, colour, headline);
+            turn.icon = r.length > 8 && r[8] instanceof String ? (String) r[8] : "";
+            turn.temp = r.length > 9 && r[9] instanceof String ? (String) r[9] : "";
+            turn.sky = r.length > 10 && r[10] instanceof String ? (String) r[10] : "";
+            out.add(turn);
         }
         return out;
     }
@@ -190,6 +199,13 @@ final class GameDay {
         final boolean f1;
         /** Fixed text in place of the countdown or "Live now" (a weather reading); empty for a game. */
         final String headline;
+        /** The short form beside the clock (weather): a sky key, "16°" and the sky's words; empty otherwise. */
+        String icon = "", temp = "", sky = "";
+
+        /** A reading Home shows beside the clock rather than in the panel. */
+        boolean besideClock() {
+            return !icon.isEmpty() && !temp.isEmpty();
+        }
 
         Turn(String topLine, String word, long startMs, long endMs, int colour) {
             this(topLine, word, startMs, endMs, colour, "");

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Weather beside the clock: "partly_day" (see MainActivity.weatherIcon). Outline, white, tinted by alpha. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
+    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="1.8" android:strokeLineCap="round"
+        android:strokeLineJoin="round" android:pathData="M8,5a3,3 0 1 1 0,6a3,3 0 1 1 0,-6Z" />
+    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="1.8" android:strokeLineCap="round"
+        android:strokeLineJoin="round" android:pathData="M8,1.5v1.2M1.5,8h1.2M3.4,3.4l0.85,0.85M12.6,3.4l-0.85,0.85" />
+    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="1.8" android:strokeLineCap="round"
+        android:strokeLineJoin="round" android:pathData="M10,21H18A3.5,3.5 0 0 0 18.5,14.04A5,5 0 0 0 9,13.3A3.9,3.9 0 0 0 10,21Z" />
+</vector>

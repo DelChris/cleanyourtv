@@ -231,6 +231,51 @@
                         android:letterSpacing="0.08"
                         android:textAllCaps="true" />
 
+                    <!-- A reading beside the clock (the weather add-on's icon, "16°" and the sky), shown by
+                         MainActivity.updatePanel when the game_day provider sends one; gone otherwise. -->
+                    <LinearLayout
+                        android:id="@+id/weatherBeside"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_vertical"
+                        android:layout_marginStart="24dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:focusable="false"
+                        android:visibility="gone">
+
+                        <ImageView
+                            android:id="@+id/weatherIcon"
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:alpha="0.8"
+                            android:importantForAccessibility="no" />
+
+                        <TextView
+                            android:id="@+id/weatherTemp"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="6dp"
+                            android:singleLine="true"
+                            android:textColor="#D9FFFFFF"
+                            android:textSize="22sp"
+                            android:fontFamily="@string/font_light"
+                            android:includeFontPadding="false" />
+
+                        <TextView
+                            android:id="@+id/weatherSky"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:singleLine="true"
+                            android:textColor="#8CFFFFFF"
+                            android:textSize="12sp"
+                            android:fontFamily="@string/font_medium"
+                            android:letterSpacing="0.14"
+                            android:textAllCaps="true"
+                            android:includeFontPadding="false" />
+                    </LinearLayout>
+
                     <View
                         android:id="@+id/clockDivider"
                         android:layout_width="1dp"
