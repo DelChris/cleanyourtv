@@ -232,13 +232,13 @@
                         android:textAllCaps="true" />
 
                     <!-- A reading beside the clock (the weather add-on's icon, "16°" and the city), on the clock's baseline
-                         (baselineAlignedChildIndex: the temperature; the icon's bottom sits on it too), shown by
+                         (baselineAlignedChildIndex: the temperature; the icon's drawing, which ends 19 of its 24dp down, sits on it too), shown by
                          MainActivity.updatePanel when the game_day provider sends one; gone otherwise. -->
                     <LinearLayout
                         android:id="@+id/weatherBeside"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="24dp"
+                        android:layout_marginStart="18dp"
                         android:baselineAlignedChildIndex="1"
                         android:orientation="horizontal"
                         android:focusable="false"
@@ -248,7 +248,7 @@
                             android:id="@+id/weatherIcon"
                             android:layout_width="24dp"
                             android:layout_height="24dp"
-                            android:baselineAlignBottom="true"
+                            android:baseline="19dp"
                             android:importantForAccessibility="no" />
 
                         <TextView
