@@ -231,15 +231,15 @@
                         android:letterSpacing="0.08"
                         android:textAllCaps="true" />
 
-                    <!-- A reading beside the clock (the weather add-on's icon, "16°" and the sky), shown by
+                    <!-- A reading beside the clock (the weather add-on's icon, "16°" and the city), on the clock's baseline
+                         (baselineAlignedChildIndex: the temperature; the icon's bottom sits on it too), shown by
                          MainActivity.updatePanel when the game_day provider sends one; gone otherwise. -->
                     <LinearLayout
                         android:id="@+id/weatherBeside"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_gravity="center_vertical"
                         android:layout_marginStart="24dp"
-                        android:gravity="center_vertical"
+                        android:baselineAlignedChildIndex="1"
                         android:orientation="horizontal"
                         android:focusable="false"
                         android:visibility="gone">
@@ -248,7 +248,7 @@
                             android:id="@+id/weatherIcon"
                             android:layout_width="24dp"
                             android:layout_height="24dp"
-                            android:alpha="0.8"
+                            android:baselineAlignBottom="true"
                             android:importantForAccessibility="no" />
 
                         <TextView
@@ -257,9 +257,9 @@
                             android:layout_height="wrap_content"
                             android:layout_marginStart="6dp"
                             android:singleLine="true"
-                            android:textColor="#D9FFFFFF"
+                            android:textColor="#FFFFFFFF"
                             android:textSize="22sp"
-                            android:fontFamily="@string/font_light"
+                            android:fontFamily="@string/font_regular"
                             android:includeFontPadding="false" />
 
                         <TextView
@@ -268,7 +268,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginStart="12dp"
                             android:singleLine="true"
-                            android:textColor="#8CFFFFFF"
+                            android:textColor="#E6FFFFFF"
                             android:textSize="12sp"
                             android:fontFamily="@string/font_medium"
                             android:letterSpacing="0.14"

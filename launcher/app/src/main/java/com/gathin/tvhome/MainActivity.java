@@ -2897,7 +2897,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (turns.size() > 1 && !stopped) handler.postDelayed(turnTick, GameDay.delayToNextTurn(since, seconds));
     }
 
-    /** The weather beside the clock: a small outline icon, "16°" and the sky's words; gone without a reading. */
+    /** The weather beside the clock: a small outline icon, "16°" and the city; gone without a reading. */
     private void showWeatherBeside(GameDay.Turn t) {
         View group = findViewById(R.id.weatherBeside);
         if (t == null) {
@@ -2907,8 +2907,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         ((ImageView) findViewById(R.id.weatherIcon)).setImageResource(weatherIcon(t.icon));
         ((TextView) findViewById(R.id.weatherTemp)).setText(t.temp);
         TextView sky = findViewById(R.id.weatherSky);
-        sky.setText(t.sky);
-        sky.setVisibility(t.sky.isEmpty() ? View.GONE : View.VISIBLE);
+        sky.setText(t.place);
+        sky.setVisibility(t.place.isEmpty() ? View.GONE : View.VISIBLE);
         group.setVisibility(View.VISIBLE);
     }
 

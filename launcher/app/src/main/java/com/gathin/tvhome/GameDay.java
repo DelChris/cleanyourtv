@@ -35,10 +35,10 @@ final class GameDay {
     private static String[] withHeadline() {
         String[] p = java.util.Arrays.copyOf(COLUMNS, COLUMNS.length + 4);
         p[COLUMNS.length] = HEADLINE;
-        // Optional short form of a reading for beside the clock (the weather): a sky key, "16°" and "Cloudy".
+        // Optional short form of a reading for beside the clock (the weather): a sky key, "16°" and the place ("Juan-les-Pins").
         p[COLUMNS.length + 1] = "icon";
         p[COLUMNS.length + 2] = "temp";
-        p[COLUMNS.length + 3] = "sky";
+        p[COLUMNS.length + 3] = "place";
         return p;
     }
 
@@ -173,7 +173,7 @@ final class GameDay {
             Turn turn = new Turn((String) r[0], word, start, end, colour, headline);
             turn.icon = r.length > 8 && r[8] instanceof String ? (String) r[8] : "";
             turn.temp = r.length > 9 && r[9] instanceof String ? (String) r[9] : "";
-            turn.sky = r.length > 10 && r[10] instanceof String ? (String) r[10] : "";
+            turn.place = r.length > 10 && r[10] instanceof String ? (String) r[10] : "";
             out.add(turn);
         }
         return out;
@@ -199,8 +199,8 @@ final class GameDay {
         final boolean f1;
         /** Fixed text in place of the countdown or "Live now" (a weather reading); empty for a game. */
         final String headline;
-        /** The short form beside the clock (weather): a sky key, "16°" and the sky's words; empty otherwise. */
-        String icon = "", temp = "", sky = "";
+        /** The short form beside the clock (weather): a sky key, "16°" and the place; empty otherwise. */
+        String icon = "", temp = "", place = "";
 
         /** A reading Home shows beside the clock rather than in the panel. */
         boolean besideClock() {
