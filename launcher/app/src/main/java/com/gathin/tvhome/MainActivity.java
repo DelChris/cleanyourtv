@@ -1582,6 +1582,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (idleFaded && event.getAction() == KeyEvent.ACTION_DOWN && event.getRepeatCount() == 0) {
             wakeKeyCode = event.getKeyCode();
             wakeFromIdle(true);
+            // Swallowed before Activity.dispatchKeyEvent, so onUserInteraction never sees it: start the countdown here.
+            restartIdleClock();
             return true;
         }
         if (wakeKeyCode != -1 && event.getKeyCode() == wakeKeyCode) {
