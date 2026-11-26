@@ -143,7 +143,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     /** The music playing in an allowed app (now_playing_packages), shown under the date; null when off. */
     private NowPlaying nowPlaying;
     private View nowPlayingView;
-    private final Runnable hideNowPlaying = () -> Fade.to(nowPlayingView, 0f, 600);
+    /** The same track, larger, bottom left while Home idles. */
+    private View nowPlayingIdle;
+    /** The track shown, or null when nothing plays. */
+    private NowPlaying.Track nowTrack;
+    private final Runnable hideNowPlaying = () -> {
+        nowTrack = null;
+        Fade.to(nowPlayingView, 0f, 600);
+        Fade.to(nowPlayingIdle, 0f, 600);
+    };
     private String liveTvAction;
     private String liveTvInputId;
     /** The app library is on (config.xml, app_library): only then can the tile menu take an app off Home. */
@@ -1354,7 +1362,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             idleAlphas[i] = idleViews[i].getAlpha();
             Fade.to(idleViews[i], 0f, 1800);
         }
+        // The music changes places: the line under the date fades with the dock, and the large cover rises where
+        // the dock was once it has mostly gone, so the two never read as one block sliding across the screen.
+        if (nowTrack != null) {
+            Fade.to(nowPlayingView, 0f, 1200);
+            root.postDelayed(showIdleTrack, 600);
+        }
     }
+
+    private final Runnable showIdleTrack = () -> {
+        if (idleFaded && nowTrack != null) Fade.to(nowPlayingIdle, 1f, 1800);
+    };
 
     /** Brings back what the idle fade hid: quickly after a key, at once when Home comes back to the front. */
     private void wakeFromIdle(boolean animate) {
@@ -1363,49 +1381,71 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         for (int i = 0; i < idleViews.length; i++) {
             Fade.to(idleViews[i], idleAlphas[i], animate ? 300 : 0);
         }
+        if (nowPlayingView != null) {
+            root.removeCallbacks(showIdleTrack);
+            Fade.to(nowPlayingIdle, 0f, animate ? 200 : 0);   // leaves a little faster than the dock comes back
+            if (nowTrack != null) Fade.to(nowPlayingView, 1f, animate ? 300 : 0);
+        }
     }
 
     private void setUpNowPlaying(List<String> packages, boolean shaded) {
         nowPlayingView = findViewById(R.id.nowPlaying);
-        ImageView art = findViewById(R.id.nowPlayingArt);
+        nowPlayingIdle = findViewById(R.id.nowPlayingIdle);
         float density = getResources().getDisplayMetrics().density;
-        art.setOutlineProvider(new ViewOutlineProvider() {
-            @Override
-            public void getOutline(View view, Outline outline) {
-                outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), 6 * density);
-            }
-        });
-        art.setClipToOutline(true);
+        // 3dp on the 24dp line cover (under the grid of 6: 6dp would make a stamp of it), 12dp on the 72dp idle one.
+        roundCorners(findViewById(R.id.nowPlayingArt), 3 * density);
+        roundCorners(findViewById(R.id.nowPlayingIdleArt), 12 * density);
         if (shaded) {
-            ((TextView) findViewById(R.id.nowPlayingTitle)).setShadowLayer(6 * density, 0, density, 0x8C000000);
-            ((TextView) findViewById(R.id.nowPlayingArtist)).setShadowLayer(6 * density, 0, density, 0x8C000000);
+            for (int id : new int[]{R.id.nowPlayingTitle, R.id.nowPlayingArtist, R.id.nowPlayingIdleTitle,
+                    R.id.nowPlayingIdleArtist}) {
+                ((TextView) findViewById(id)).setShadowLayer(6 * density, 0, density, 0x8C000000);
+            }
         }
         nowPlaying = new NowPlaying(this, packages);
     }
 
-    /** The playing track under the date; a few seconds after the music stops, nothing (a gap between tracks keeps it). */
+    private static void roundCorners(View v, float radius) {
+        v.setOutlineProvider(new ViewOutlineProvider() {
+            @Override
+            public void getOutline(View view, Outline outline) {
+                outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), radius);
+            }
+        });
+        v.setClipToOutline(true);
+    }
+
+    /**
+     * The playing track: one line under the date on Home, the large cover bottom left while Home idles. A few seconds
+     * after the music stops, neither (a gap between two tracks keeps it).
+     */
     private void showNowPlaying(NowPlaying.Track t) {
         root.removeCallbacks(hideNowPlaying);
         if (t == null) {
-            if (nowPlayingView.getVisibility() == View.VISIBLE) root.postDelayed(hideNowPlaying, 4000);
+            if (nowTrack != null) root.postDelayed(hideNowPlaying, 4000);
             return;
         }
-        ImageView art = findViewById(R.id.nowPlayingArt);
-        if (t.art != null) {
-            art.setImageBitmap(t.art);
-        } else {
+        nowTrack = t;
+        Drawable icon = null;
+        if (t.art == null) {
             try {
-                art.setImageDrawable(getPackageManager().getApplicationIcon(t.pkg));
-            } catch (PackageManager.NameNotFoundException e) {
-                art.setImageDrawable(null);
+                icon = getPackageManager().getApplicationIcon(t.pkg);
+            } catch (PackageManager.NameNotFoundException ignored) {
             }
         }
+        for (int id : new int[]{R.id.nowPlayingArt, R.id.nowPlayingIdleArt}) {
+            ImageView art = findViewById(id);
+            if (t.art != null) art.setImageBitmap(t.art); else art.setImageDrawable(icon);
+        }
         ((TextView) findViewById(R.id.nowPlayingTitle)).setText(t.title);
+        ((TextView) findViewById(R.id.nowPlayingIdleTitle)).setText(t.title);
         TextView artist = findViewById(R.id.nowPlayingArtist);
-        artist.setText(t.artist);
-        artist.setVisibility(t.artist.isEmpty() ? View.GONE : View.VISIBLE);
-        if (nowPlayingView.getVisibility() != View.VISIBLE) nowPlayingView.setAlpha(0f);
-        Fade.to(nowPlayingView, 1f, 600);
+        artist.setText(t.artist.isEmpty() ? "" : "  ·  " + t.artist);
+        TextView idleArtist = findViewById(R.id.nowPlayingIdleArtist);
+        idleArtist.setText(t.artist);
+        idleArtist.setVisibility(t.artist.isEmpty() ? View.GONE : View.VISIBLE);
+        View target = idleFaded ? nowPlayingIdle : nowPlayingView;
+        if (target.getVisibility() != View.VISIBLE) target.setAlpha(0f);
+        Fade.to(target, 1f, 600);
     }
 
     @Override

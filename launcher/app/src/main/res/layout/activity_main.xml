@@ -365,15 +365,16 @@
                 android:focusable="false"
                 android:visibility="gone" />
 
-            <!-- The music playing in a now_playing_packages app (Spotify): cover, title and artist under the date.
-                 Shown by MainActivity.showNowPlaying; it stays through the idle fade. -->
+            <!-- The music playing in a now_playing_packages app (Spotify), as one line under the date: a small cover,
+                 the title and the artist, in the date's register. MainActivity.showNowPlaying; while Home idles it
+                 gives way to nowPlayingIdle. -->
             <LinearLayout
                 android:id="@+id/nowPlaying"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_below="@id/leftBlock"
                 android:layout_alignStart="@id/leftBlock"
-                android:layout_marginTop="18dp"
+                android:layout_marginTop="12dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
                 android:focusable="false"
@@ -381,42 +382,35 @@
 
                 <ImageView
                     android:id="@+id/nowPlayingArt"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
                     android:scaleType="centerCrop"
                     android:importantForAccessibility="no" />
 
-                <LinearLayout
+                <TextView
+                    android:id="@+id/nowPlayingTitle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="12dp"
-                    android:orientation="vertical">
+                    android:maxWidth="420dp"
+                    android:singleLine="true"
+                    android:ellipsize="end"
+                    android:textColor="#EBFFFFFF"
+                    android:textSize="14sp"
+                    android:fontFamily="@string/font_medium"
+                    android:includeFontPadding="false" />
 
-                    <TextView
-                        android:id="@+id/nowPlayingTitle"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:maxWidth="480dp"
-                        android:singleLine="true"
-                        android:ellipsize="end"
-                        android:textColor="#FFFFFFFF"
-                        android:textSize="16sp"
-                        android:fontFamily="@string/font_medium"
-                        android:includeFontPadding="false" />
-
-                    <TextView
-                        android:id="@+id/nowPlayingArtist"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:maxWidth="480dp"
-                        android:singleLine="true"
-                        android:ellipsize="end"
-                        android:textColor="#A6FFFFFF"
-                        android:textSize="13sp"
-                        android:fontFamily="@string/font_regular"
-                        android:includeFontPadding="false" />
-                </LinearLayout>
+                <TextView
+                    android:id="@+id/nowPlayingArtist"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:maxWidth="240dp"
+                    android:singleLine="true"
+                    android:ellipsize="end"
+                    android:textColor="#A6FFFFFF"
+                    android:textSize="14sp"
+                    android:fontFamily="@string/font_regular"
+                    android:includeFontPadding="false" />
             </LinearLayout>
 
             <LinearLayout
@@ -500,6 +494,62 @@
                 android:scrollbars="none"
                 android:descendantFocusability="afterDescendants" />
         </FrameLayout>
+    </LinearLayout>
+
+    <!-- While Home idles, the music is the screen's one moment: a large cover where the dock was, aligned with the
+         clock, the title and the artist beside it. Faded in and out by MainActivity.fadeForIdle and wakeFromIdle. -->
+    <LinearLayout
+        android:id="@+id/nowPlayingIdle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|start"
+        android:layout_marginStart="56dp"
+        android:layout_marginBottom="48dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:focusable="false"
+        android:alpha="0"
+        android:visibility="invisible">
+
+        <ImageView
+            android:id="@+id/nowPlayingIdleArt"
+            android:layout_width="72dp"
+            android:layout_height="72dp"
+            android:scaleType="centerCrop"
+            android:elevation="6dp"
+            android:importantForAccessibility="no" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="18dp"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/nowPlayingIdleTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxWidth="600dp"
+                android:singleLine="true"
+                android:ellipsize="end"
+                android:textColor="#FFFFFFFF"
+                android:textSize="20sp"
+                android:fontFamily="@string/font_medium"
+                android:includeFontPadding="false" />
+
+            <TextView
+                android:id="@+id/nowPlayingIdleArtist"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:maxWidth="600dp"
+                android:singleLine="true"
+                android:ellipsize="end"
+                android:textColor="#A6FFFFFF"
+                android:textSize="14sp"
+                android:fontFamily="@string/font_regular"
+                android:includeFontPadding="false" />
+        </LinearLayout>
     </LinearLayout>
 
     <!-- The single floating glass highlight that springs between tiles. -->
