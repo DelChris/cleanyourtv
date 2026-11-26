@@ -18,6 +18,9 @@ import android.content.pm.ChangedPackages;
 import android.content.res.ColorStateList;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
+import android.view.WindowManager;
+import android.view.ViewOutlineProvider;
+import android.graphics.Outline;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.LinearGradient;
@@ -127,6 +130,20 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     /** Back on Home opens ClockActivity (config.xml, back_opens_clock). */
     private boolean backOpensClock;
     private final Runnable showIdleClock = () -> startActivity(new Intent(this, ClockActivity.class));
+    /** home_idle_fade_minutes in ms: idle time on Home before the dock and top buttons fade out; 0 is off. */
+    private long idleFadeMs;
+    /** The dock and top buttons are faded out; the next key only brings them back. */
+    private boolean idleFaded;
+    /** The key whose DOWN woke Home from the idle fade: its UP is swallowed too. */
+    private int wakeKeyCode = -1;
+    /** What the idle fade hides, with the alpha each had, to give it back on waking. */
+    private View[] idleViews;
+    private float[] idleAlphas;
+    private final Runnable fadeForIdle = this::fadeForIdle;
+    /** The music playing in an allowed app (now_playing_packages), shown under the date; null when off. */
+    private NowPlaying nowPlaying;
+    private View nowPlayingView;
+    private final Runnable hideNowPlaying = () -> Fade.to(nowPlayingView, 0f, 600);
     private String liveTvAction;
     private String liveTvInputId;
     /** The app library is on (config.xml, app_library): only then can the tile menu take an app off Home. */
@@ -611,6 +628,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         greetingName = cfg.greetingName;
         if (cfg.dateBelowClock) moveDateBelowClock();
         if (cfg.wallpaperEnabled) shadeHeaderTexts();
+        idleFadeMs = cfg.homeIdleFadeMinutes * MINUTE_MS;
+        if (!cfg.nowPlayingPackages.isEmpty()) setUpNowPlaying(cfg.nowPlayingPackages, cfg.wallpaperEnabled);
         if (cfg.dateBelowClock && cfg.iconOnlyButtons && !cfg.topMenu
                 && !getResources().getBoolean(R.bool.rtl_menu_bar)) {
             alignDateBelowIconsWithClock();
@@ -1068,6 +1087,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
+        wakeFromIdle(false);
         if (openLauncherSettingsIfAsked(intent)) return;
         if (openLibraryIfAsked(intent)) return;
         if (openInputsIfAsked(intent)) return;
@@ -1097,6 +1117,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         updateClockVisibility();
         clockRefresh.start();   // with timeReceiver: while Home is visible, paused or not
+        if (nowPlaying != null) nowPlaying.start(this::showNowPlaying);
         tileRefresh.onStart();
     }
 
@@ -1117,6 +1138,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             return;
         }
         restartIdleClock();
+        wakeFromIdle(false);
+        // The idle fade is Home's own screensaver: the screen stays on, so the TV's never takes over from it.
+        if (idleFadeMs > 0) getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         promptsPaused = false;
         if (grid.getAdapter() == null) grid.setAdapter(adapter);   // dropped by onTrimMemory
         switch (tileRefresh.onResume(packagesChangedSinceRebuild())) {
@@ -1314,6 +1338,74 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private void restartIdleClock() {
         root.removeCallbacks(showIdleClock);
         if (resumed && idleClockMs > 0) root.postDelayed(showIdleClock, idleClockMs);
+        root.removeCallbacks(fadeForIdle);
+        if (resumed && idleFadeMs > 0) root.postDelayed(fadeForIdle, idleFadeMs);
+    }
+
+    /** Home's screensaver: the dock, the focused app's name and the top buttons fade out; the clock, weather and music stay. */
+    private void fadeForIdle() {
+        if (!resumed || idleFaded || reordering || openPopup != null) return;
+        if (idleViews == null) {
+            idleViews = new View[]{findViewById(R.id.topButtons), (View) grid.getParent(), hero, glass};
+            idleAlphas = new float[idleViews.length];
+        }
+        idleFaded = true;
+        for (int i = 0; i < idleViews.length; i++) {
+            idleAlphas[i] = idleViews[i].getAlpha();
+            Fade.to(idleViews[i], 0f, 1800);
+        }
+    }
+
+    /** Brings back what the idle fade hid: quickly after a key, at once when Home comes back to the front. */
+    private void wakeFromIdle(boolean animate) {
+        if (!idleFaded) return;
+        idleFaded = false;
+        for (int i = 0; i < idleViews.length; i++) {
+            Fade.to(idleViews[i], idleAlphas[i], animate ? 300 : 0);
+        }
+    }
+
+    private void setUpNowPlaying(List<String> packages, boolean shaded) {
+        nowPlayingView = findViewById(R.id.nowPlaying);
+        ImageView art = findViewById(R.id.nowPlayingArt);
+        float density = getResources().getDisplayMetrics().density;
+        art.setOutlineProvider(new ViewOutlineProvider() {
+            @Override
+            public void getOutline(View view, Outline outline) {
+                outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), 6 * density);
+            }
+        });
+        art.setClipToOutline(true);
+        if (shaded) {
+            ((TextView) findViewById(R.id.nowPlayingTitle)).setShadowLayer(6 * density, 0, density, 0x8C000000);
+            ((TextView) findViewById(R.id.nowPlayingArtist)).setShadowLayer(6 * density, 0, density, 0x8C000000);
+        }
+        nowPlaying = new NowPlaying(this, packages);
+    }
+
+    /** The playing track under the date; a few seconds after the music stops, nothing (a gap between tracks keeps it). */
+    private void showNowPlaying(NowPlaying.Track t) {
+        root.removeCallbacks(hideNowPlaying);
+        if (t == null) {
+            if (nowPlayingView.getVisibility() == View.VISIBLE) root.postDelayed(hideNowPlaying, 4000);
+            return;
+        }
+        ImageView art = findViewById(R.id.nowPlayingArt);
+        if (t.art != null) {
+            art.setImageBitmap(t.art);
+        } else {
+            try {
+                art.setImageDrawable(getPackageManager().getApplicationIcon(t.pkg));
+            } catch (PackageManager.NameNotFoundException e) {
+                art.setImageDrawable(null);
+            }
+        }
+        ((TextView) findViewById(R.id.nowPlayingTitle)).setText(t.title);
+        TextView artist = findViewById(R.id.nowPlayingArtist);
+        artist.setText(t.artist);
+        artist.setVisibility(t.artist.isEmpty() ? View.GONE : View.VISIBLE);
+        if (nowPlayingView.getVisibility() != View.VISIBLE) nowPlayingView.setAlpha(0f);
+        Fade.to(nowPlayingView, 1f, 600);
     }
 
     @Override
@@ -1325,6 +1417,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         RemoteKeys.release(this);
         cancelHoldOk();
         root.removeCallbacks(showIdleClock);
+        root.removeCallbacks(fadeForIdle);
+        getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         endReorder();   // Home or another app while reordering keeps the order so far
         wallpaperPlayer.stop();
         stopAmbientAnimation();
@@ -1351,6 +1445,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         started = false;
         unregisterReceiver(timeReceiver);
         clockRefresh.stop();
+        if (nowPlaying != null) nowPlaying.stop();
         handler.removeCallbacks(clockCheck);
         stopped = true;
         tileRefresh.onStop();
@@ -1443,6 +1538,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      */
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
+        // Faded for idle: the first key only brings the dock back, like waking a screensaver.
+        if (idleFaded && event.getAction() == KeyEvent.ACTION_DOWN && event.getRepeatCount() == 0) {
+            wakeKeyCode = event.getKeyCode();
+            wakeFromIdle(true);
+            return true;
+        }
+        if (wakeKeyCode != -1 && event.getKeyCode() == wakeKeyCode) {
+            if (event.getAction() == KeyEvent.ACTION_UP) wakeKeyCode = -1;
+            return true;
+        }
         if (homeIgnoreChannelKeys && RemoteKeys.isChannelKey(event.getKeyCode())) return true;
         // Vendor keys (TCL Netflix button, 4062) never reach the key services, only the focused window, so their
         // "hold:" entries run here too or nowhere. Only while resumed: onPause releases Home's holds, and a DOWN

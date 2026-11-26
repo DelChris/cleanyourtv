@@ -221,6 +221,14 @@ final class Config {
      * connected or not, unlike inputs_connected_only, which also folds a console asleep in standby.
      */
     boolean inputsFoldAnalog;
+    /**
+     * home_idle_fade_minutes: after this long without a key on Home, the dock and the top buttons fade out and only the
+     * clock, the weather and the music playing stay; Home also keeps the screen on, so the TV's own screensaver never
+     * replaces it. 0 is off.
+     */
+    int homeIdleFadeMinutes;
+    /** now_playing_packages: apps whose music, while it plays, shows under the date (Spotify); empty is off. */
+    List<String> nowPlayingPackages = new ArrayList<>();
     /** The dock band's opacity in percent (config.json dock_opacity, 30-100): below 100 the wallpaper shows through. */
     final int dockOpacity;
     /**
@@ -745,6 +753,8 @@ final class Config {
                 settingsKeyClearTask);
         built.wallpaperNightDim = json == null ? 0 : integer(json, "wallpaper_night_dim", 0, 0, 90);
         built.inputsFoldAnalog = json != null && bool(json, "inputs_fold_analog", false);
+        built.homeIdleFadeMinutes = json == null ? 0 : integer(json, "home_idle_fade_minutes", 0, 0, 240);
+        if (json != null) built.nowPlayingPackages = stringList(json, "now_playing_packages", built.nowPlayingPackages);
         return built;
     }
 

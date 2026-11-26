@@ -11,6 +11,8 @@
   "show_stats": false,
   "app_keys": ["KEYCODE_TV_INPUT:inputs"],
   "inputs_fold_analog": true,
+  "home_idle_fade_minutes": 2,
+  "now_playing_packages": ["com.spotify.tv.android"],
   "app_library": true,
   "columns": 8,
   "single_row": true,

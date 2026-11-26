@@ -365,6 +365,60 @@
                 android:focusable="false"
                 android:visibility="gone" />
 
+            <!-- The music playing in a now_playing_packages app (Spotify): cover, title and artist under the date.
+                 Shown by MainActivity.showNowPlaying; it stays through the idle fade. -->
+            <LinearLayout
+                android:id="@+id/nowPlaying"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/leftBlock"
+                android:layout_alignStart="@id/leftBlock"
+                android:layout_marginTop="18dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:focusable="false"
+                android:visibility="gone">
+
+                <ImageView
+                    android:id="@+id/nowPlayingArt"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:scaleType="centerCrop"
+                    android:importantForAccessibility="no" />
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/nowPlayingTitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:maxWidth="480dp"
+                        android:singleLine="true"
+                        android:ellipsize="end"
+                        android:textColor="#FFFFFFFF"
+                        android:textSize="16sp"
+                        android:fontFamily="@string/font_medium"
+                        android:includeFontPadding="false" />
+
+                    <TextView
+                        android:id="@+id/nowPlayingArtist"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:maxWidth="480dp"
+                        android:singleLine="true"
+                        android:ellipsize="end"
+                        android:textColor="#A6FFFFFF"
+                        android:textSize="13sp"
+                        android:fontFamily="@string/font_regular"
+                        android:includeFontPadding="false" />
+                </LinearLayout>
+            </LinearLayout>
+
             <LinearLayout
                 android:id="@+id/topButtons"
                 android:layout_width="wrap_content"

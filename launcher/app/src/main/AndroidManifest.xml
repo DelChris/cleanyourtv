@@ -231,6 +231,17 @@
                 <action android:name="android.service.notification.NotificationListenerService" />
             </intent-filter>
         </service>
+        <!-- Lets Home see the music playing (now_playing_packages); reads no notification.
+             cmd notification allow_listener com.gathin.tvhome/.NowPlayingListener -->
+        <service
+            android:name=".NowPlayingListener"
+            android:exported="true"
+            android:label="@string/now_playing_name"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
         <receiver
             android:name=".GuardConfig"
             android:exported="true"

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Fade: the current fade on a view, so a newer one stops it. -->
+    <item name="fade_token" type="id" />
+</resources>
